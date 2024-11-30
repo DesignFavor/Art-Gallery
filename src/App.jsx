@@ -1,18 +1,19 @@
 import { Suspense, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { useGLTF, useAnimations, OrbitControls, Html, PerspectiveCamera, Environment } from '@react-three/drei';
-
 import * as THREE from 'three';
-
 import tunnel from 'tunnel-rat';
 import Hotspot from './assets/hotspot';
+import { gsap } from 'gsap'; // Import gsap for animations
 
 const status = tunnel();
 
 export default function App() {
+  const [cameraTarget, setCameraTarget] = useState(new THREE.Vector3(0, 0.5, 3));
+
   // Toggle the visibility of the Product component when hotspot is clicked
-  const handleHotspotClick = () => {
-    alert("Hotspot clicked!");
+  const handleHotspotClick = (targetPosition) => {
+    setCameraTarget(targetPosition); // Update camera target position
   };
 
   return (
@@ -27,10 +28,12 @@ export default function App() {
       >
         <PerspectiveCamera makeDefault fov={55} position={[0, 0.5, 3]} />
         <ambientLight intensity={1} color="white" />
+        
+        <CameraMovement target={cameraTarget} />
 
         <group position={[0, -3, -3]}>
           <Suspense fallback={null}>
-            <Model url='./assets/source/02.glb' onHotspotClick={handleHotspotClick} />
+            <Model url='./assets/artgallery.glb' onHotspotClick={handleHotspotClick} />
           </Suspense>
           <Environment files="./envy.hdr" />
         </group>
@@ -49,6 +52,24 @@ export default function App() {
   );
 }
 
+function CameraMovement({ target }) {
+  const { camera, gl } = useThree();
+
+  // Ensure camera movement when the target changes
+  useState(() => {
+    gsap.to(camera.position, {
+      x: target.x,
+      y: target.y,
+      z: target.z,
+      duration: 1.5, // Duration of the movement
+      ease: 'power2.out', // Ease for smooth movement
+    });
+    gl.render(camera, camera); // Force render after animation to avoid issues
+  }, [target, camera, gl]);
+
+  return null;
+}
+
 function Model({ url, onHotspotClick, ...props }) {
   const { scene, animations } = useGLTF(url); // Load the model and animations
   const { actions, mixer } = useAnimations(animations, scene); // Set up animations
@@ -63,6 +84,12 @@ function Model({ url, onHotspotClick, ...props }) {
   // Find the Shirt object
   const shirtObject = scene.getObjectByName('Plant004');
 
+  // When hotspot is clicked, move camera to the shirt object
+  const onClick = () => {
+    const position = new THREE.Vector3().setFromMatrixPosition(shirtObject.matrixWorld);
+    onHotspotClick(position); // Pass the position of the shirt as the target
+  };
+
   return (
     <>
       <primitive object={scene} {...props} />
@@ -73,9 +100,10 @@ function Model({ url, onHotspotClick, ...props }) {
           position={new THREE.Vector3().setFromMatrixPosition(shirtObject.matrixWorld)}
           rotation={shirtObject.rotation}
           scale={shirtObject.scale}
+          onClick={onClick}
         >
           <Html>
-            <Hotspot onClick={onHotspotClick} />
+            <Hotspot />
           </Html>
         </mesh>
       )}

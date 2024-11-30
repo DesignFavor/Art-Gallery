@@ -3,12 +3,10 @@ import React, { useState } from 'react';
 const Hotspot = () => {
     const [isChecked, setIsChecked] = useState(false);
 
-    const toggleHotspot = () => {
-        setIsChecked(!isChecked);
-    };
+
 
     const handleLabelClick = () => {
-        window.location.href = "https://mooneyworldax.com/";
+        window.location.href = "/";
     };
 
     return (
@@ -19,10 +17,8 @@ const Hotspot = () => {
                 id="point-1" 
                 name="point" 
                 value="1"
-                checked={isChecked} 
-                onChange={toggleHotspot}
             />
-            <label htmlFor="point-1" id="label-1" onClick={handleLabelClick}>
+            <label htmlFor="point-1" id="label-1" >
                 <span>
                     <span></span>
                 </span>
