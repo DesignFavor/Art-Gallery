@@ -33,7 +33,7 @@ export default function App() {
 
         <group position={[0, -3, -3]}>
           <Suspense fallback={null}>
-            <Model url='./assets/artgallery.glb' onHotspotClick={handleHotspotClick} />
+            <Model url='./assets/artgallery.gltf' onHotspotClick={handleHotspotClick} />
           </Suspense>
           <Environment files="./envy.hdr" />
         </group>
