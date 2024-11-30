@@ -1,0 +1,113 @@
+/* Hotspot Styles */
+:root {
+  --point-1-top: 220px;
+  --point-1-left: 120px;
+  --point-width: 15px;
+  --point-height: 15px;
+  --point-1-scale: 5;
+}
+
+.image-indicators {
+  position: relative;
+  width: 400px;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0;
+  margin: auto;
+}
+
+.image-indicators label {
+  display: flex;
+  position: absolute;
+  cursor: pointer;
+  transition: opacity 0.3s ease-out .5s;
+  z-index: 1;
+}
+
+.image-indicators > label > span {
+  background-color: #ffffff;
+  width: 10px;
+  height: 10px;
+  border-radius: 60px;
+  transform: scale(1);
+}
+
+.image-indicators > label > span > span {
+  display: inline-block;
+  vertical-align: 20px;
+  background-color: rgb(255, 255, 255);
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  border-radius: 60px;
+  animation: scaleGrow 3s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+@keyframes scaleGrow {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+  opacity: 0;
+  z-index: 2;
+  transition: width 0.4s, height 0.4s, left 0.4s, top 0.4s;
+}
+
+.point:checked {
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  z-index: 9;
+}
+
+.point:checked ~ label {
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.description {
+  position: relative;
+  height: 45px;
+  overflow: hidden;
+  border-radius: 10px;
+  padding: 10px 20px;
+  margin: 1px 10px 10px;
+}
+
+.description p {
+  margin: 0;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+#label-1 {
+  top: var(--point-1-top);
+  left: var(--point-1-left);
+}
+
+#point-1 {
+  left: var(--point-1-left);
+  top: var(--point-1-top);
+}
+
+#point-1:checked ~ img {
+  transform-origin: var(--point-1-left) var(--point-1-top);
+  transform: scale(var(--point-1-scale));
+}
+
+#point-1:checked ~ .description {
+  background: rgb(191 191 191 / 30%);
+  backdrop-filter: blur(15px);
+}
