@@ -1,19 +1,30 @@
-import { Suspense, useState } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { useGLTF, useAnimations, OrbitControls, Html, PerspectiveCamera, Environment } from '@react-three/drei';
+import { Suspense, useRef, useEffect, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { useGLTF, Html, Environment, CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
-import tunnel from 'tunnel-rat';
+import { useControls, button, folder } from 'leva';
 import Hotspot from './assets/hotspot';
-import { gsap } from 'gsap'; // Import gsap for animations
 
-const status = tunnel();
+const CAMERA_POSITIONS = {
+  default: [0, 0, 12],
+  hotspot: [0, -1, 6],
+  Art001: [1, 0, 0.3],
+  Art002: [-2, 0, 5],
+  Art003: [1, 0, -5],
+  Art004: [0, -2, 5],
+  Art005: [1, 0.5, -7],
+  Art006: [-1.5, -1.5, 6],
+};
+
+const CAMERA_ZOOMS = {
+  default: 1,
+  hotspot: 1.5,
+  art: 1.2,
+};
 
 export default function App() {
-  const [cameraTarget, setCameraTarget] = useState(new THREE.Vector3(0, 0.5, 3));
-
-  // Toggle the visibility of the Product component when hotspot is clicked
-  const handleHotspotClick = (targetPosition) => {
-    setCameraTarget(targetPosition); // Update camera target position
+  const handleHotspotClick = () => {
+    console.log('Hotspot clicked!');
   };
 
   return (
@@ -23,90 +34,160 @@ export default function App() {
         gl={{
           outputEncoding: THREE.sRGBEncoding,
           toneMapping: THREE.AgxToneMapping,
-          toneMappingExposure: 1, // Adjust exposure for desired brightness
+          toneMappingExposure: 1,
         }}
       >
-        <PerspectiveCamera makeDefault fov={55} position={[0, 0.5, 3]} />
+        <CameraManager />
         <ambientLight intensity={1} color="white" />
-        
-        <CameraMovement target={cameraTarget} />
-
         <group position={[0, -3, -3]}>
           <Suspense fallback={null}>
-            <Model url='./assets/artgallery.gltf' onHotspotClick={handleHotspotClick} />
+            <Model url="./assets/artgallery.gltf" onHotspotClick={handleHotspotClick} />
           </Suspense>
           <Environment files="./envy.hdr" />
         </group>
-
-        <OrbitControls
-          enableZoom={true}
-          minDistance={2}
-          maxDistance={5}
-          maxPolarAngle={Math.PI / 1.8}
-          minPolarAngle={Math.PI / 3}
-          enableDamping={true}
-          enablePan={true}
-        />
       </Canvas>
     </div>
   );
 }
 
-function CameraMovement({ target }) {
-  const { camera, gl } = useThree();
-
-  // Ensure camera movement when the target changes
-  useState(() => {
-    gsap.to(camera.position, {
-      x: target.x,
-      y: target.y,
-      z: target.z,
-      duration: 1.5, // Duration of the movement
-      ease: 'power2.out', // Ease for smooth movement
-    });
-    gl.render(camera, camera); // Force render after animation to avoid issues
-  }, [target, camera, gl]);
-
-  return null;
-}
-
 function Model({ url, onHotspotClick, ...props }) {
-  const { scene, animations } = useGLTF(url); // Load the model and animations
-  const { actions, mixer } = useAnimations(animations, scene); // Set up animations
+  const { scene, animations } = useGLTF(url);
+  const mixer = new THREE.AnimationMixer(scene);
 
-  // Play the animation on load
-  useState(() => {
-    if (actions && actions[Object.keys(actions)[0]]) {
-      actions[Object.keys(actions)[0]].play(); // Play the first animation in the GLB
+  useEffect(() => {
+    if (animations.length > 0) {
+      const action = mixer.clipAction(animations[0]);
+      action.play();
     }
-  }, [actions]);
 
-  // Find the Shirt object
-  const shirtObject = scene.getObjectByName('Plant004');
+    const clock = new THREE.Clock();
 
-  // When hotspot is clicked, move camera to the shirt object
-  const onClick = () => {
-    const position = new THREE.Vector3().setFromMatrixPosition(shirtObject.matrixWorld);
-    onHotspotClick(position); // Pass the position of the shirt as the target
-  };
+    const animate = () => {
+      const delta = clock.getDelta();
+      mixer.update(delta);
+      requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      mixer.stopAllAction();
+    };
+  }, [animations, mixer]);
+
+  const hotspotObject = scene.getObjectByName('Plant004');
 
   return (
     <>
       <primitive object={scene} {...props} />
-
-      {/* Hotspot for Shirt */}
-      {shirtObject && (
+      {hotspotObject && (
         <mesh
-          position={new THREE.Vector3().setFromMatrixPosition(shirtObject.matrixWorld)}
-          rotation={shirtObject.rotation}
-          scale={shirtObject.scale}
-          onClick={onClick}
+          position={new THREE.Vector3().setFromMatrixPosition(hotspotObject.matrixWorld)}
+          rotation={hotspotObject.rotation}
+          scale={hotspotObject.scale}
         >
           <Html>
-            <Hotspot />
+            <Hotspot onClick={onHotspotClick} />
           </Html>
         </mesh>
       )}
     </>
   );
 }
+
+const CameraManager = () => {
+  const controls = useRef();
+  const [cameraPosition, setCameraPosition] = useState(CAMERA_POSITIONS.default);
+  const [cameraRotation, setCameraRotation] = useState([0, 0, 0]);
+
+  const updateCameraPosition = (x, y, z) => {
+    setCameraPosition([x, y, z]);
+    controls.current?.setPosition(x, y, z, true);
+  };
+
+  const updateCameraRotation = (rx, ry, rz) => {
+    setCameraRotation([rx, ry, rz]);
+    // Directly set the camera's rotation
+    controls.current?.camera.rotation.set(rx, ry, rz);
+  };
+
+  useEffect(() => {
+    controls.current?.setPosition(...cameraPosition, true);
+    controls.current?.camera.rotation.set(...cameraRotation);
+  }, [cameraPosition, cameraRotation]);
+
+  useControls("Camera", {
+    Default: button(() => updateCameraPosition(...CAMERA_POSITIONS.default)),
+    Hotspot: button(() => updateCameraPosition(...CAMERA_POSITIONS.hotspot)),
+    Art001: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art001)),
+    Art002: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art002)),
+    Art003: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art003)),
+    Art004: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art004)),
+    Art005: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art005)),
+    Art006: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art006)),
+    CameraPosition: folder({
+      x: {
+        value: cameraPosition[0],
+        min: -10,
+        max: 10,
+        step: 0.1,
+        onChange: (x) => updateCameraPosition(x, cameraPosition[1], cameraPosition[2]),
+      },
+      y: {
+        value: cameraPosition[1],
+        min: -10,
+        max: 10,
+        step: 0.1,
+        onChange: (y) => updateCameraPosition(cameraPosition[0], y, cameraPosition[2]),
+      },
+      z: {
+        value: cameraPosition[2],
+        min: 1,
+        max: 20,
+        step: 0.1,
+        onChange: (z) => updateCameraPosition(cameraPosition[0], cameraPosition[1], z),
+      },
+    }),
+    CameraRotation: folder({
+      rotationX: {
+        value: cameraRotation[0],
+        min: -Math.PI,
+        max: Math.PI,
+        step: 0.01,
+        onChange: (rx) => updateCameraRotation(rx, cameraRotation[1], cameraRotation[2]),
+      },
+      rotationY: {
+        value: cameraRotation[1],
+        min: -Math.PI,
+        max: Math.PI,
+        step: 0.01,
+        onChange: (ry) => updateCameraRotation(cameraRotation[0], ry, cameraRotation[2]),
+      },
+      rotationZ: {
+        value: cameraRotation[2],
+        min: -Math.PI,
+        max: Math.PI,
+        step: 0.01,
+        onChange: (rz) => updateCameraRotation(cameraRotation[0], cameraRotation[1], rz),
+      },
+    }),
+  });
+
+  return (
+    <CameraControls
+      ref={controls}
+      minZoom={1}
+      maxZoom={3}
+      polarRotateSpeed={-0.3}
+      azimuthRotateSpeed={-0.3}
+      mouseButtons={{
+        left: 1,
+        wheel: 16,
+      }}
+      touches={{
+        one: 32,
+        two: 512,
+      }}
+    />
+  );
+};
