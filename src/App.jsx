@@ -7,24 +7,19 @@ import Hotspot from './assets/hotspot';
 
 const CAMERA_POSITIONS = {
   default: [0, 0, 12],
-  hotspot: [0, -1, 6],
-  Art001: [1, 0, 0.3],
-  Art002: [-2, 0, 5],
-  Art003: [1, 0, -5],
-  Art004: [0, -2, 5],
-  Art005: [1, 0.5, -7],
-  Art006: [-1.5, -1.5, 6],
-};
-
-const CAMERA_ZOOMS = {
-  default: 1,
-  hotspot: 1.5,
-  art: 1.2,
+  hotspot: [0, -1, 8],
+  Art001: [0.5, -0.005, 0.01],
+  Art002: [-0.5, -0.005, -0.01],
+  Art003: [0.5, 0.005, -8],
+  Art004: [-1.5, -1.5, -10],
 };
 
 export default function App() {
+  const [cameraPosition, setCameraPosition] = useState(CAMERA_POSITIONS.default);
+
   const handleHotspotClick = () => {
     console.log('Hotspot clicked!');
+    setCameraPosition(CAMERA_POSITIONS.hotspot);
   };
 
   return (
@@ -37,7 +32,7 @@ export default function App() {
           toneMappingExposure: 1,
         }}
       >
-        <CameraManager />
+        <CameraManager cameraPosition={cameraPosition} setCameraPosition={setCameraPosition} />
         <ambientLight intensity={1} color="white" />
         <group position={[0, -3, -3]}>
           <Suspense fallback={null}>
@@ -95,26 +90,18 @@ function Model({ url, onHotspotClick, ...props }) {
   );
 }
 
-const CameraManager = () => {
+const CameraManager = ({ cameraPosition, setCameraPosition }) => {
   const controls = useRef();
-  const [cameraPosition, setCameraPosition] = useState(CAMERA_POSITIONS.default);
-  const [cameraRotation, setCameraRotation] = useState([0, 0, 0]);
 
   const updateCameraPosition = (x, y, z) => {
+    console.log('Camera Position:', [x, y, z]);
     setCameraPosition([x, y, z]);
     controls.current?.setPosition(x, y, z, true);
   };
 
-  const updateCameraRotation = (rx, ry, rz) => {
-    setCameraRotation([rx, ry, rz]);
-    // Directly set the camera's rotation
-    controls.current?.camera.rotation.set(rx, ry, rz);
-  };
-
   useEffect(() => {
     controls.current?.setPosition(...cameraPosition, true);
-    controls.current?.camera.rotation.set(...cameraRotation);
-  }, [cameraPosition, cameraRotation]);
+  }, [cameraPosition]);
 
   useControls("Camera", {
     Default: button(() => updateCameraPosition(...CAMERA_POSITIONS.default)),
@@ -123,54 +110,6 @@ const CameraManager = () => {
     Art002: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art002)),
     Art003: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art003)),
     Art004: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art004)),
-    Art005: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art005)),
-    Art006: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art006)),
-    CameraPosition: folder({
-      x: {
-        value: cameraPosition[0],
-        min: -10,
-        max: 10,
-        step: 0.1,
-        onChange: (x) => updateCameraPosition(x, cameraPosition[1], cameraPosition[2]),
-      },
-      y: {
-        value: cameraPosition[1],
-        min: -10,
-        max: 10,
-        step: 0.1,
-        onChange: (y) => updateCameraPosition(cameraPosition[0], y, cameraPosition[2]),
-      },
-      z: {
-        value: cameraPosition[2],
-        min: 1,
-        max: 20,
-        step: 0.1,
-        onChange: (z) => updateCameraPosition(cameraPosition[0], cameraPosition[1], z),
-      },
-    }),
-    CameraRotation: folder({
-      rotationX: {
-        value: cameraRotation[0],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (rx) => updateCameraRotation(rx, cameraRotation[1], cameraRotation[2]),
-      },
-      rotationY: {
-        value: cameraRotation[1],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (ry) => updateCameraRotation(cameraRotation[0], ry, cameraRotation[2]),
-      },
-      rotationZ: {
-        value: cameraRotation[2],
-        min: -Math.PI,
-        max: Math.PI,
-        step: 0.01,
-        onChange: (rz) => updateCameraRotation(cameraRotation[0], cameraRotation[1], rz),
-      },
-    }),
   });
 
   return (
