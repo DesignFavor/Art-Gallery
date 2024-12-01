@@ -2,7 +2,6 @@ import { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useGLTF, Html, Environment, CameraControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { useControls, button, folder } from 'leva';
 import Hotspot from './assets/hotspot';
 
 const CAMERA_POSITIONS = {
@@ -14,13 +13,23 @@ const CAMERA_POSITIONS = {
   Art004: [-1.5, -1.5, -10],
 };
 
-export default function App() {
-  const [cameraPosition, setCameraPosition] = useState(CAMERA_POSITIONS.default);
+const CAMERA_NAMES = Object.keys(CAMERA_POSITIONS);
 
-  const handleHotspotClick = () => {
-    console.log('Hotspot clicked!');
-    setCameraPosition(CAMERA_POSITIONS.hotspot);
+export default function App() {
+  const [cameraIndex, setCameraIndex] = useState(0);
+
+  const handleNext = () => {
+    setCameraIndex((prevIndex) => (prevIndex + 1) % CAMERA_NAMES.length);
   };
+
+  const handlePrevious = () => {
+    setCameraIndex((prevIndex) =>
+      prevIndex === 0 ? CAMERA_NAMES.length - 1 : prevIndex - 1
+    );
+  };
+
+  const currentCameraName = CAMERA_NAMES[cameraIndex];
+  const currentCameraPosition = CAMERA_POSITIONS[currentCameraName];
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
@@ -32,20 +41,29 @@ export default function App() {
           toneMappingExposure: 1,
         }}
       >
-        <CameraManager cameraPosition={cameraPosition} setCameraPosition={setCameraPosition} />
+        <CameraManager cameraPosition={currentCameraPosition} />
         <ambientLight intensity={1} color="white" />
-        <group position={[0, -3, 1]}> {/* Model moved further into the scene */}
-  <Suspense fallback={null}>
-    <Model url="./assets/artgallery.gltf" onHotspotClick={handleHotspotClick} />
-  </Suspense>
-  <Environment files="./envy.hdr" />
-</group>
+        <group position={[0, -3, 1]}>
+          <Suspense fallback={null}>
+            <Model url="./assets/artgallery.gltf" />
+          </Suspense>
+          <Environment files="./envy.hdr" />
+        </group>
       </Canvas>
+      <div style={styles.controls}>
+        <button style={styles.button} onClick={handlePrevious}>
+          Previous
+        </button>
+        <span style={styles.cameraName}>{currentCameraName}</span>
+        <button style={styles.button} onClick={handleNext}>
+          Next
+        </button>
+      </div>
     </div>
   );
 }
 
-function Model({ url, onHotspotClick, ...props }) {
+function Model({ url, ...props }) {
   const { scene, animations } = useGLTF(url);
   const mixer = new THREE.AnimationMixer(scene);
 
@@ -70,55 +88,21 @@ function Model({ url, onHotspotClick, ...props }) {
     };
   }, [animations, mixer]);
 
-  const hotspotObject = scene.getObjectByName('Plant004');
-
-  return (
-    <>
-      <primitive object={scene} {...props} />
-      {hotspotObject && (
-        <mesh
-          position={new THREE.Vector3().setFromMatrixPosition(hotspotObject.matrixWorld)}
-          rotation={hotspotObject.rotation}
-          scale={hotspotObject.scale}
-        >
-          <Html>
-            <Hotspot onClick={onHotspotClick} />
-          </Html>
-        </mesh>
-      )}
-    </>
-  );
+  return <primitive object={scene} {...props} />;
 }
 
-const CameraManager = ({ cameraPosition, setCameraPosition }) => {
+const CameraManager = ({ cameraPosition }) => {
   const controls = useRef();
-
-  const updateCameraPosition = (x, y, z) => {
-    console.log('Camera Position:', [x, y, z]);
-    setCameraPosition([x, y, z]);
-    controls.current?.setPosition(x, y, z, true);
-  };
 
   useEffect(() => {
     controls.current?.setPosition(...cameraPosition, true);
   }, [cameraPosition]);
-
-  useControls("Camera", {
-    Default: button(() => updateCameraPosition(...CAMERA_POSITIONS.default)),
-    Hotspot: button(() => updateCameraPosition(...CAMERA_POSITIONS.hotspot)),
-    Art001: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art001)),
-    Art002: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art002)),
-    Art003: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art003)),
-    Art004: button(() => updateCameraPosition(...CAMERA_POSITIONS.Art004)),
-  });
 
   return (
     <CameraControls
       ref={controls}
       minZoom={1}
       maxZoom={3}
-   
-
       mouseButtons={{
         left: 1,
         wheel: 16,
@@ -129,4 +113,34 @@ const CameraManager = ({ cameraPosition, setCameraPosition }) => {
       }}
     />
   );
+};
+
+const styles = {
+  controls: {
+    position: 'absolute',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
+    background: 'rgba(0, 0, 0, 0.5)',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    color: 'white',
+    fontFamily: 'Arial, sans-serif',
+  },
+  button: {
+    background: 'white',
+    color: 'black',
+    border: 'none',
+    padding: '10px 20px',
+    cursor: 'pointer',
+    borderRadius: '5px',
+  },
+  cameraName: {
+    fontSize: '16px',
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
 };
