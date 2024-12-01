@@ -6,11 +6,11 @@ import Hotspot from './assets/hotspot';
 
 const CAMERA_POSITIONS = {
   default: [0, 0, 12],
-  hotspot: [0, -1, 8],
-  Art001: [0.5, -0.005, 0.01],
-  Art002: [-0.5, -0.005, -0.01],
-  Art003: [0.5, 0.005, -8],
-  Art004: [-1.5, -1.5, -10],
+  Gallery: [0, -1, 8],
+  Painting: [0.5, -0.005, 0.01],
+  Painting2: [-0.5, -0.005, -0.01],
+  view1: [0.5, 0.005, -8],
+  view2: [-1.5, -1.5, -10],
 };
 
 const CAMERA_NAMES = Object.keys(CAMERA_POSITIONS);
