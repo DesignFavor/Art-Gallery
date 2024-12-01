@@ -34,12 +34,12 @@ export default function App() {
       >
         <CameraManager cameraPosition={cameraPosition} setCameraPosition={setCameraPosition} />
         <ambientLight intensity={1} color="white" />
-        <group position={[0, -3, -3]}>
-          <Suspense fallback={null}>
-            <Model url="./assets/artgallery.gltf" onHotspotClick={handleHotspotClick} />
-          </Suspense>
-          <Environment files="./envy.hdr" />
-        </group>
+        <group position={[0, -3, 1]}> {/* Model moved further into the scene */}
+  <Suspense fallback={null}>
+    <Model url="./assets/artgallery.gltf" onHotspotClick={handleHotspotClick} />
+  </Suspense>
+  <Environment files="./envy.hdr" />
+</group>
       </Canvas>
     </div>
   );
@@ -117,8 +117,8 @@ const CameraManager = ({ cameraPosition, setCameraPosition }) => {
       ref={controls}
       minZoom={1}
       maxZoom={3}
-      polarRotateSpeed={-0.3}
-      azimuthRotateSpeed={-0.3}
+   
+
       mouseButtons={{
         left: 1,
         wheel: 16,
